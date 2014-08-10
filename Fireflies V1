@@ -5,7 +5,7 @@
 ----------------------------------------------
 --PARAMETERS
 ---------------------------------------------
-math.randomseed(os.time())  
+--math.randomseed(os.time())  
 
 count_time = 0
 flashCicle=0
@@ -22,7 +22,7 @@ nLIGHTED=0
 nEMPTY=0
 SEED=8
 rand = Random{seed=SEED} 
---flashCicle = random:integer(10) -- from 0 to 10 -----------------------  do we need to assign this to each cell???????????
+flashCicle =0 --random:integer(10) -- from 0 to 10 -----------------------  do we need to assign this to each cell???????????
 
 --------------------------------------------------------------
 -- MODEL (1. space, 2. behavior, and 3. time)
@@ -33,12 +33,12 @@ rand = Random{seed=SEED}
 -------------
 
 world = CellularSpace{
-	xdim = 50,--150
-	ydim = 50  --100
+	xdim = 20,--150
+	ydim = 20  --100
 }
 
 world:createNeighborhood{
-	strategy = "moore",
+	strategy = "3x3",
 	self = false
 }
 
@@ -64,12 +64,12 @@ world:sample().cover = LIGHTED
 	--nLIGHTED=nLIGHTED+1
 	
 update = function(cs)
-    nLIGHTED=0
+    --nLIGHTED=0
 	forEachCell(cs, function(cell)
 		if cell.past.cover == FIREFLIES then
 			isLIGHTED=false
-				flashCicle=flashCicle-1 ---i think that here it will reduce one to the random variable flashCicle
-				if flashCicle==0 then  --- and when it is equal to 0 they should flash 
+				flashCicle=flashCicle+1 ---i think that here it will reduce one to the random variable flashCicle
+				if flashCicle==10 then  --- and when it is equal to 0 they should flash 
 					cell.cover = LIGHTED
 					isLIGHTED=true
 				else
@@ -85,10 +85,10 @@ update = function(cs)
 				nFIREFLIES=nFIREFLIES-1
 				nLIGHTED=nLIGHTED+1
 			end
-		elseif cell.past.cover == LIGHTED then
-			cell.cover = FIREFLIES
-			nLIGHTED =nLIGHTED-1
-			nFIREFLIES=nFIREFLIES+1
+		--elseif cell.past.cover == LIGHTED then
+		--	cell.cover = FIREFLIES
+		--	nLIGHTED =nLIGHTED-1
+		--	nFIREFLIES=nFIREFLIES+1
 		end
 	end)
 end
@@ -100,9 +100,9 @@ t = Timer{
 		world:synchronize()
 		update(world)
 		
-		if (LIGHTED == 2) then 	 --- I made ==2 because the global value is 2 for LIGHTED			
-			count_time = count_time + 1
-		end
+		--if FIREFLIES == 1 then 	 --- I made ==2 because the global value is 2 for LIGHTED			
+		--	count_time = count_time + 1
+		--end
 		
 		world:notify()
 	end}
