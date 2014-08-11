@@ -5,131 +5,125 @@
 ----------------------------------------------
 --PARAMETERS
 ---------------------------------------------
---math.randomseed(os.time())  
+--math.randomseed(os.time()) 
+--BLOCK = 1
+EMPTY 	= 2
+OFF 	= 3
+ON 		=4
+SEED = 8
+nFireflies=0
+iteration=0
+rand = Random{seed = SEED}
+flashCycle = Random()--random:integer(10)
 
-count_time = 0
-flashCicle=0
+-- Espaco
+-- EMPTY
+-- ON
+-- OFF
 
-FIREFLIES = 1
-LIGHTED = 2
---OFF = 3
-EMPTY = 4
---flashCicle=10
 
-nFIREFLIES=0
-nLIGHTED=0
---nOFF=0
-nEMPTY=0
-SEED=8
-rand = Random{seed=SEED} 
-flashCicle =0 --random:integer(10) -- from 0 to 10 -----------------------  do we need to assign this to each cell???????????
+-- Pirilampo
+-- ON
+-- OFF
 
---------------------------------------------------------------
--- MODEL (1. space, 2. behavior, and 3. time)
---------------------------------------------------------------
-
--------------
---# SPACE #
--------------
-
-world = CellularSpace{
-	xdim = 20,--150
-	ydim = 20  --100
+-------------------------------------------
+-- MODEL 
+-------------------------------------------
+ 
+--# space
+cs = CellularSpace {
+	xdim = 50,
+	ydim = 50
 }
+ 
+cs:createNeighborhood{
+	strategy = "vonneumann", --moore--vonneumann
+		self = false}
 
-world:createNeighborhood{
-	strategy = "3x3",
-	self = false
-}
-
-forEachCell(world, function(cell)
-	if rand:number() > 0.2 then  --  0.2  0.25  0.3  0.35  0.5 
-		cell.cover = FIREFLIES
-		nFIREFLIES = nFIREFLIES+1
-	elseif rand:number() > 0.7 then  --this will give us 0.3 of the space with empty cells
-		cell.cover = EMPTY
-		nEMPTY = nEMPTY+1
-	else
-		cell.cover = LIGHTED  --this will give us the remainder between 0.6 and 0.7 = 0.1 of lighted fireflies making it random
-		nLIGHTED = nLIGHTED+1
-	end
+ 
+forEachCell(cs, function(cell)
+	cell.state = EMPTY
 end)
 
-----------------
---# BEHAVIOR #
-----------------
+--# behavior 
 
-world:sample().cover = LIGHTED
-	--nFIREFLIES=nFIREFLIES-1
-	--nLIGHTED=nLIGHTED+1
-	
-update = function(cs)
-    --nLIGHTED=0
-	forEachCell(cs, function(cell)
-		if cell.past.cover == FIREFLIES then
-			isLIGHTED=false
-				flashCicle=flashCicle+1 ---i think that here it will reduce one to the random variable flashCicle
-				if flashCicle==10 then  --- and when it is equal to 0 they should flash 
-					cell.cover = LIGHTED
-					isLIGHTED=true
-				else
-					cell.cover = FIREFLIES----else they should stay as fireflies
-				end
---			forEachNeighbor(cell, function(cell, neighbor)
---				if neighbor.past.cover == LIGHTED then
---					cell.cover = LIGHTED
---					isLIGHTED=true
---				end
---			end)
-			if isLIGHTED==true then
-				nFIREFLIES=nFIREFLIES-1
-				nLIGHTED=nLIGHTED+1
-			end
-		--elseif cell.past.cover == LIGHTED then
-		--	cell.cover = FIREFLIES
-		--	nLIGHTED =nLIGHTED-1
-		--	nFIREFLIES=nFIREFLIES+1
+fireflies = Agent {
+	cycle=10,
+	state = OFF,
+	init = function(self)
+		
+		if math.random()< 0.6 then
+			self.state = ON
 		end
-	end)
-end
------------
---# TIME #
------------
-t = Timer{
-	Event{action = function(e)
-		world:synchronize()
-		update(world)
 		
-		--if FIREFLIES == 1 then 	 --- I made ==2 because the global value is 2 for LIGHTED			
-		--	count_time = count_time + 1
-		--end
+	end,
+	execute = function(self)
+		local myCell		= self:getCell()
+		local neighCell 	= myCell:getNeighborhood():sample()
+		--local agNeigh       = neighCell:getAgent()
 		
-		world:notify()
-	end}
+			if neighCell.past.state == ON then
+				self.state 	= ON
+				self.cycle	= 10
+			else -- when cell is empty or my neighbor fireflie is off
+				if self.cycle == 0 then
+					self.state = ON
+					self.cycle = 10
+				else 
+					self.state = OFF
+					self.cycle = self.cycle-1
+				end
+			end 
+		
+		myCell.state = self.state
+	end
 }
+soc = Society{
+	instance = fireflies,
+	quantity = 100
+}
+ 
+--# time
+ 
+t = Timer {
+	Event{action = soc},
+	Event{action = cs}
+}
+ 
+--# environment
+ 
+e = Environment {
+	cs,
+	soc,
+	t
+}
+ 
+e:createPlacement{strategy = "random", max = 1}
+ 
+forEachAgent(soc, function(agent)
+	agent:getCell().state = agent.state
+end)
 
-
---------------------------------------------------------------
--- SIMULATION
---------------------------------------------------------------
-
-legend = Legend {
+-------------------------------------------
+-- SIMULATION 
+-------------------------------------------
+ 
+leg = Legend {
 	grouping = "uniquevalue",
 	colorBar = {
-		{value = FIREFLIES, text="fireflies", color = "white"},
-		{value = LIGHTED, text="lighted", color = "yellow"},
-		{value = EMPTY, text="empty", color = "black"}
+		{value = EMPTY, color = "white"},
+		{value = OFF, color = "black"},
+--		{value = BLOCK, color = "brown"},
+		{value = ON, color = "yellow"},
 	}
 }
-
-Observer{
-	subject = world,
-	attributes = {"cover"},
-	legends = {legend}
+ 
+Observer {
+	subject = cs,
+	attributes = {"state"},
+	legends = {leg}
 }
-
-world:notify()  -- needed just if you want to see the initial state (before simulation runs)
-
-t:execute(20) --100
-
-print ( nFIREFLIES, nLIGHTED)
+ 
+ 
+e:execute(100)
+	print(nFireflies)
