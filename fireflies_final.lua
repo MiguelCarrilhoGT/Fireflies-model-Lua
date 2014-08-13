@@ -12,6 +12,8 @@ OFF 	= 3
 ON 		= 4
 SEED	= 8
 rand = Random{seed = SEED}
+nEmpty 	=0
+nTree 	=0
 --flashCycle = Random()--random:integer(10)
 
 -- Espaco
@@ -42,8 +44,10 @@ cs:createNeighborhood{
 forEachCell(cs, function(cell)
 	if rand:number() > 0.1 then
 		cell.state = EMPTY
+		nEmpty = nEmpty+1
 	else
 		cell.state = TREE
+		nTree = nTree+1
 	end
 end)
 
@@ -80,14 +84,14 @@ fireflies = Agent {
 		myCell.state = self.state
 		
 		-- movement rule
-		local neighCell2 	= myCell:getNeighborhood():sample()
-		if neighCell2.past.state == EMPTY then
+		--local neighCell2 	= myCell:getNeighborhood():sample()
+		if neighCell.past.state == EMPTY then
 			self:getCell().state = EMPTY
-			self:move(neighCell2)
-			neighCell2.state = self.state
+			self:move(neighCell)
+			neighCell.state = self.state
 			self.cycle = self.cycle-1
 		end
-	end
+	end,
 }
 soc = Society{
 	instance = fireflies,
@@ -136,5 +140,5 @@ Observer {
 }
  
  
-e:execute(500)
-	print(nFireflies)
+e:execute(50)
+	print(nEmpty,nTree)
